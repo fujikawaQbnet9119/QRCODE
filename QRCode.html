@@ -131,6 +131,19 @@
                 return;
             }
 
+            // --- 背景透過処理 ---
+            const sourceCtx = sourceCanvas.getContext('2d');
+            const imageData = sourceCtx.getImageData(0, 0, qrSize, qrSize);
+            const data = imageData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                // 白いピクセル(R,G,B > 250)を透明にする
+                if (data[i] > 250 && data[i + 1] > 250 && data[i + 2] > 250) {
+                    data[i + 3] = 0; // Alpha値を0に設定
+                }
+            }
+            sourceCtx.putImageData(imageData, 0, 0);
+            // --- 背景透過処理ここまで ---
+
             // 2. ロゴ画像を読み込む準備
             const logo = new Image();
 
@@ -140,7 +153,10 @@
                 qrCanvas.width = qrSize;
                 qrCanvas.height = qrSize;
 
-                // QRコードを描画
+                // Canvasをクリアして完全に透明な状態から始める
+                ctx.clearRect(0, 0, qrSize, qrSize);
+
+                // 背景が透過されたQRコードを描画
                 ctx.drawImage(sourceCanvas, 0, 0);
 
                 // ロゴを中央に描画
