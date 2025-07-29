@@ -19,14 +19,14 @@
         /* --- ローカルフォント設定 --- */
         @font-face {
             font-family: 'Red Hat Display';
-            /* HTMLファイルからの相対パスを明示 */
-            src: url('./RedHatDisplay-VariableFont_wght.ttf') format('truetype');
+            /* パス指定を修正 */
+            src: url('RedHatDisplay-VariableFont_wght.ttf') format('truetype');
             font-weight: 400 700;
         }
         @font-face {
             font-family: 'Noto Sans JP';
-            /* HTMLファイルからの相対パスを明示 */
-            src: url('./NotoSansJP-VariableFont_wght.ttf') format('truetype');
+            /* パス指定を修正 */
+            src: url('NotoSansJP-VariableFont_wght.ttf') format('truetype');
             font-weight: 400 700;
         }
         
@@ -100,8 +100,8 @@
         const placeholderText = document.getElementById('placeholder-text');
         const downloadBtn = document.getElementById('download-btn');
 
-        // ローカルにあるロゴ画像のファイル名を指定（相対パスを明示）
-        const logoSrc = './QBHOUSE_logo_v_RGB.png';
+        // ローカルにあるロゴ画像のファイル名を指定（パス指定を修正）
+        const logoSrc = 'QBHOUSE_logo_v_RGB.png';
 
         /**
          * QRコードとロゴを生成・描画するメインの関数
