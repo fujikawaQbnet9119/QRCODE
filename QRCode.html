@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QBハウス QRコード生成アプリ</title>
+    <!-- Tailwind CSSを読み込み -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- QRコード生成ライブラリ (qrcode.js) を読み込み -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    
+    <style>
+        /* QBハウスのブランドカラーを定義 */
+        :root {
+            --qb-navy: #00215C;
+            --qb-navy-darker: #001742;
+        }
+
+        /* --- ローカルフォント設定 --- */
+        @font-face {
+            font-family: 'Red Hat Display';
+            /* HTMLファイルと同じ階層にあるフォントファイルを指定 */
+            src: url('RedHatDisplay-VariableFont_wght.ttf') format('truetype');
+            font-weight: 400 700;
+        }
+        @font-face {
+            font-family: 'Noto Sans JP';
+            /* HTMLファイルと同じ階層にあるフォントファイルを指定 */
+            src: url('NotoSansJP-VariableFont_wght.ttf') format('truetype');
+            font-weight: 400 700;
+        }
+        
+        /* フォント設定: 英数字はRed Hat Display、日本語はNoto Sans JPを優先 */
+        body {
+            font-family: 'Red Hat Display', 'Noto Sans JP', sans-serif;
+        }
+
+        /* QRコード表示エリアのCanvasが中央に配置されるように */
+        #qrcode-container canvas {
+            display: block;
+            margin: 0 auto;
+            border-radius: 0.5rem; /* canvasにも角丸を適用 */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 flex items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 md:p-8">
+        
+        <div class="text-center mb-6">
+            <h1 class="text-2xl md:text-3xl font-bold text-[var(--qb-navy)] dark:text-white">QBハウス QRコード生成</h1>
+            <p class="text-gray-500 dark:text-gray-400 mt-2">店舗番号を入力して、専用QRコードを生成します。</p>
+        </div>
+
+        <!-- 入力フォーム -->
+        <form id="qr-form" class="space-y-4">
+            <div>
+                <label for="store-number-input" class="sr-only">店舗番号</label>
+                <input 
+                    type="number" 
+                    id="store-number-input"
+                    placeholder="店舗番号を入力 (例: 899)"
+                    class="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 border-2 border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--qb-navy)] dark:text-white transition-all duration-300"
+                    required
+                >
+            </div>
+            <button 
+                type="submit"
+                class="w-full bg-[var(--qb-navy)] text-white font-bold py-3 px-4 rounded-lg hover:bg-[var(--qb-navy-darker)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--qb-navy)] dark:focus:ring-offset-gray-800 transition-all transform hover:scale-105"
+            >
+                QRコードを生成
+            </button>
+        </form>
+
+        <!-- QRコード表示エリア -->
+        <div id="qrcode-container" class="mt-6 flex flex-col items-center justify-center min-h-[288px] w-full">
+            <!-- QRコードを描画するCanvas -->
+            <canvas id="qr-canvas" class="hidden"></canvas>
+            <p id="placeholder-text" class="text-gray-400 dark:text-gray-500">ここにQRコードが表示されます</p>
+        </div>
+
+        <!-- ダウンロードボタン（生成後に表示） -->
+        <div class="mt-4 text-center">
+            <a 
+                id="download-btn"
+                href="#"
+                class="hidden inline-block bg-green-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 dark:focus:ring-offset-gray-800 transition-all"
+            >
+                ダウンロード
+            </a>
+        </div>
+
+    </div>
+
+    <script>
+        // DOM要素の取得
+        const qrForm = document.getElementById('qr-form');
+        const storeNumberInput = document.getElementById('store-number-input');
+        const qrCanvas = document.getElementById('qr-canvas');
+        const placeholderText = document.getElementById('placeholder-text');
+        const downloadBtn = document.getElementById('download-btn');
+
+        // ローカルにあるロゴ画像のファイル名を指定
+        const logoSrc = 'QBHOUSE_logo_v_RGB.png';
+
+        /**
+         * QRコードとロゴを生成・描画するメインの関数
+         * @param {string} storeNumber - 店舗番号
+         */
+        function generateQRCodeWithLogo(storeNumber) {
+            const baseUrl = 'https://www.qbhouse.co.jp/search/';
+            const fullUrl = baseUrl + storeNumber;
+            const qrSize = 288;
+
+            // 1. 一時的なコンテナにQRコードを生成
+            const tempContainer = document.createElement('div');
+            new QRCode(tempContainer, {
+                text: fullUrl,
+                width: qrSize,
+                height: qrSize,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+
+            const sourceCanvas = tempContainer.querySelector('canvas');
+            if (!sourceCanvas) {
+                console.error("QRコードのCanvas生成に失敗しました。");
+                placeholderText.textContent = 'QRコードの生成に失敗しました。';
+                placeholderText.classList.remove('hidden');
+                return;
+            }
+
+            // 2. ロゴ画像を読み込む準備
+            const logo = new Image();
+
+            // 3. ロゴの読み込み成功時の処理を定義
+            logo.onload = () => {
+                const ctx = qrCanvas.getContext('2d');
+                qrCanvas.width = qrSize;
+                qrCanvas.height = qrSize;
+
+                // QRコードを描画
+                ctx.drawImage(sourceCanvas, 0, 0);
+
+                // ロゴを中央に描画
+                const logoSize = qrSize * 0.25;
+                const logoX = (qrSize - logoSize) / 2;
+                const logoY = (qrSize - logoSize) / 2;
+                
+                // ロゴの背景に白い四角を描画
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(logoX - 5, logoY - 5, logoSize + 10, logoSize + 10);
+
+                // ロゴを描画
+                ctx.drawImage(logo, logoX, logoY, logoSize, logoSize);
+
+                // UIを更新
+                placeholderText.classList.add('hidden');
+                qrCanvas.classList.remove('hidden');
+                downloadBtn.classList.remove('hidden');
+            };
+
+            // 4. ロゴの読み込み失敗時の処理を定義
+            logo.onerror = () => {
+                console.error("ロゴ画像の読み込みに失敗しました。'" + logoSrc + "'がHTMLファイルと同じ場所にあるか確認してください。");
+                placeholderText.textContent = 'ロゴ画像の読み込みに失敗しました。';
+                placeholderText.classList.remove('hidden');
+                qrCanvas.classList.add('hidden');
+                downloadBtn.classList.add('hidden');
+            };
+            
+            // 5. ロゴ画像のソースを設定して読み込みを開始
+            logo.src = logoSrc;
+        }
+
+        // フォームが送信されたときの処理
+        qrForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            const storeNumber = storeNumberInput.value;
+            if (storeNumber && storeNumber.trim()) {
+                generateQRCodeWithLogo(storeNumber);
+            }
+        });
+
+        // ダウンロードボタンがクリックされたときの処理
+        downloadBtn.addEventListener('click', (event) => {
+            const imageUrl = qrCanvas.toDataURL('image/png');
+            downloadBtn.href = imageUrl;
+            downloadBtn.download = `qbhouse_qr_${storeNumberInput.value}.png`;
+        });
+    </script>
+
+</body>
+</html>
